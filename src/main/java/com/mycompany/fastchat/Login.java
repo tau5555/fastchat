@@ -85,6 +85,18 @@ public class Login {
     }
 
     /**
+     * Checks that a cell number starts with an international dialling code
+     * and is no more than ten characters long after it. Static so that other
+     * classes (such as Message) can reuse the exact same rule.
+     *
+     * @param cellNumber the cell number to check
+     * @return true if the cell number is correctly formatted
+     */
+    public static boolean isValidCellNumber(String cellNumber) {
+        return cellNumber != null && CELL_PATTERN.matcher(cellNumber).matches();
+    }
+
+    /**
      * Checks that the username contains an underscore and is no more
      * than five characters long.
      *
@@ -110,13 +122,13 @@ public class Login {
     }
 
     /**
-     * Checks that the cell number starts with an international dialling
-     * code and is no more than ten characters long after it.
+     * Checks that this user's cell number starts with an international
+     * dialling code and is no more than ten characters long after it.
      *
      * @return true if the cell number is correctly formatted
      */
     public boolean checkCellPhoneNumber() {
-        return cellphoneNumber != null && CELL_PATTERN.matcher(cellphoneNumber).matches();
+        return isValidCellNumber(cellphoneNumber);
     }
 
     /**
