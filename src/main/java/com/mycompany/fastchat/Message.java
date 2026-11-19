@@ -1,30 +1,20 @@
 package com.mycompany.fastchat;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Random;
 
 /**
  * Message.java
  *
- * Represents one chat message in FastChat (PROG5121 POE Part 2). Each
+ * Represents one chat message in FastChat (PROG5121 POE Parts 2 and 3). Each
  * message has a randomly generated ten-digit ID, a message number, a
  * recipient, the message text, and an auto-generated message hash.
  *
- * The class also keeps track of every message sent while the program is
- * running and can store a message in a JSON file to send later.
+ * A message can also be stored in a JSON file to send later. The JSON reading
+ * and writing (and its attribution) is in MessageStore.
  *
  * @author Andile
  */
@@ -62,19 +52,6 @@ public final class Message {
     private static final String STORAGE_FILE = "messages.json";
 
     private static final Random RANDOM = new Random();
-
-    /*
-     * JSON storage approach (writing a list of objects to a file with Gson,
-     * and reading a JSON array back into a List using TypeToken) adapted from
-     * the attacomsian.com Gson guides:
-     * https://attacomsian.com/blog/gson-write-json-file
-     * https://attacomsian.com/blog/gson-read-json-file
-     */
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Type STORED_LIST_TYPE = new TypeToken<List<Message>>() { }.getType();
-
-    // Every message sent while the program is running.
-    private static final List<Message> sentMessages = new ArrayList<>();
 
     private String messageId;
     private int messageNumber;
@@ -245,39 +222,6 @@ public final class Message {
     }
 
     /**
-     * Records a message as sent so it is counted and listed.
-     *
-     * @param message the message that was sent
-     */
-    public static void recordSent(Message message) {
-        sentMessages.add(message);
-    }
-
-    /**
-     * @return the details of every message sent while the program is running
-     */
-    public static String printMessages() {
-        String newLine = System.lineSeparator();
-        StringBuilder report = new StringBuilder();
-        for (Message message : sentMessages) {
-            report.append(message.details()).append(newLine).append(newLine);
-        }
-        return report.toString();
-    }
-
-    /**
-     * @return the total number of messages sent while the program is running
-     */
-    public static int returnTotalMessages() {
-        return sentMessages.size();
-    }
-
-    /** Empties the sent messages list (used by the unit tests). */
-    public static void clearSentMessages() {
-        sentMessages.clear();
-    }
-
-    /**
      * Stores this message in messages.json so it can be sent later.
      *
      * @throws IOException if the file cannot be read or written
@@ -294,22 +238,10 @@ public final class Message {
      * @throws IOException if the file cannot be read or written
      */
     public void storeMessage(Path file) throws IOException {
-        List<Message> storedMessages = readStoredMessages(file);
-        storedMessages.add(this);
-        try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-            GSON.toJson(storedMessages, writer);
-        }
-    }
-
-    // Reads the messages already saved in the JSON file (an empty list if there are none yet).
-    private static List<Message> readStoredMessages(Path file) throws IOException {
-        if (!Files.exists(file)) {
-            return new ArrayList<>();
-        }
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            List<Message> storedMessages = GSON.fromJson(reader, STORED_LIST_TYPE);
-            return storedMessages == null ? new ArrayList<>() : storedMessages;
-        }
+        Message[] storedMessages = MessageStore.readMessages(file);
+        Message[] updatedMessages = Arrays.copyOf(storedMessages, storedMessages.length + 1);
+        updatedMessages[storedMessages.length] = this;
+        MessageStore.writeMessages(file, updatedMessages);
     }
 
     /** @return the ten-digit message ID */
@@ -320,5 +252,15 @@ public final class Message {
     /** @return the message hash */
     public String getMessageHash() {
         return messageHash;
+    }
+
+    /** @return the recipient's cell number */
+    public String getRecipient() {
+        return recipient;
+    }
+
+    /** @return the message text */
+    public String getMessageText() {
+        return messageText;
     }
 }

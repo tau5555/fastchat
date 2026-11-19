@@ -6,10 +6,10 @@ import java.util.Scanner;
 /**
  * Fastchat.java
  *
- * Console entry point for the FastChat application (PROG5121 POE Parts 1
- * and 2). The user registers and logs in, and once logged in can choose
- * from a numeric menu to send messages, see recent messages (coming soon)
- * or quit.
+ * Console entry point for the FastChat application (PROG5121 POE Parts 1, 2
+ * and 3). The user registers and logs in, and once logged in can send
+ * messages, see recent messages (coming soon), quit, or work with their
+ * stored messages.
  *
  * Console-only — no GUI elements are used, per the assignment brief.
  *
@@ -17,15 +17,30 @@ import java.util.Scanner;
  */
 public class Fastchat {
 
-    private static final String WELCOME_MESSAGE = "Welcome to FastChat.";
+    private static final String WELCOME_MESSAGE = "Welcome to QuickChat.";
     private static final String COMING_SOON = "Coming Soon.";
 
     // Main menu options.
     private static final int MENU_SEND = 1;
     private static final int MENU_RECENT = 2;
     private static final int MENU_QUIT = 3;
+    private static final int MENU_STORED = 4;
+
+    // Stored Messages menu options.
+    private static final int STORED_SENDERS = 1;
+    private static final int STORED_LONGEST = 2;
+    private static final int STORED_BY_ID = 3;
+    private static final int STORED_BY_RECIPIENT = 4;
+    private static final int STORED_DELETE = 5;
+    private static final int STORED_REPORT = 6;
+    private static final int STORED_BACK = 7;
 
     private static final Scanner SCANNER = new Scanner(System.in);
+
+    // Every message sent, disregarded or stored while the program runs.
+    private static final MessageStore STORE = new MessageStore();
+
+    private static String loggedInUser = "";
 
     public static void main(String[] args) {
         Login login = registerNewUser();
@@ -69,6 +84,9 @@ public class Fastchat {
 
         boolean success = login.loginUser(loginUsername, loginPassword);
         System.out.println(login.returnLoginStatus(success));
+        if (success) {
+            loggedInUser = loginUsername;
+        }
         return success;
     }
 
@@ -79,6 +97,8 @@ public class Fastchat {
     private static void runApplication() {
         System.out.println();
         System.out.println(WELCOME_MESSAGE);
+
+        loadStoredMessages();
 
         int messagesAllowed = readPositiveInt("How many messages do you wish to enter? ");
         int messagesEntered = 0;
@@ -93,7 +113,8 @@ public class Fastchat {
                 case MENU_SEND -> messagesEntered = sendMessages(messagesEntered, messagesAllowed);
                 case MENU_RECENT -> System.out.println(COMING_SOON);
                 case MENU_QUIT -> running = false;
-                default -> System.out.println("Invalid option; please choose 1, 2 or 3.");
+                case MENU_STORED -> runStoredMessagesMenu();
+                default -> System.out.println("Invalid option; please choose 1, 2, 3 or 4.");
             }
         }
     }
@@ -103,6 +124,7 @@ public class Fastchat {
         System.out.println("1) Send Messages");
         System.out.println("2) Show recently sent messages");
         System.out.println("3) Quit");
+        System.out.println("4) Stored Messages");
     }
 
     /**
@@ -122,7 +144,7 @@ public class Fastchat {
         }
 
         System.out.println();
-        System.out.println("Total messages sent: " + Message.returnTotalMessages());
+        System.out.println("Total messages sent: " + STORE.returnTotalMessages());
         return messagesAllowed;
     }
 
@@ -180,13 +202,13 @@ public class Fastchat {
             switch (choice) {
                 case Message.OPTION_SEND -> {
                     System.out.println(message.sentMessage(choice));
-                    Message.recordSent(message);
+                    STORE.addSent(message);
                     System.out.println(message.details());
                     handled = true;
                 }
                 case Message.OPTION_DISREGARD -> {
                     System.out.println(message.sentMessage(choice));
-                    handled = confirmDelete();
+                    handled = confirmDelete(message);
                 }
                 case Message.OPTION_STORE -> handled = storeForLater(message);
                 default -> System.out.println(message.sentMessage(choice));
@@ -194,9 +216,10 @@ public class Fastchat {
         }
     }
 
-    private static boolean confirmDelete() {
+    private static boolean confirmDelete(Message message) {
         String input = readLine("> ");
         if (input.trim().equals("0")) {
+            STORE.addDisregarded(message);
             System.out.println("Message deleted.");
             return true;
         }
@@ -207,11 +230,102 @@ public class Fastchat {
     private static boolean storeForLater(Message message) {
         try {
             message.storeMessage();
+            STORE.addStored(message);
             System.out.println(message.sentMessage(Message.OPTION_STORE));
             return true;
         } catch (IOException e) {
             System.out.println("The message could not be stored: " + e.getMessage());
             return false;
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Part 3: stored messages
+    // ---------------------------------------------------------------
+
+    // Reads messages.json into the stored messages array when the app starts.
+    private static void loadStoredMessages() {
+        try {
+            STORE.loadStoredMessages();
+        } catch (IOException e) {
+            System.out.println("The stored messages could not be loaded: " + e.getMessage());
+        }
+    }
+
+    private static void runStoredMessagesMenu() {
+        boolean inMenu = true;
+        while (inMenu) {
+            printStoredMenu();
+            int option = readInt("Choose an option: ");
+
+            switch (option) {
+                case STORED_SENDERS -> System.out.print(STORE.storedSendersAndRecipients(loggedInUser));
+                case STORED_LONGEST -> showLongestStoredMessage();
+                case STORED_BY_ID -> searchByMessageId();
+                case STORED_BY_RECIPIENT -> searchByRecipient();
+                case STORED_DELETE -> deleteByHash();
+                case STORED_REPORT -> System.out.print(STORE.report());
+                case STORED_BACK -> inMenu = false;
+                default -> System.out.println("Invalid option; please choose 1 to 7.");
+            }
+        }
+    }
+
+    private static void printStoredMenu() {
+        System.out.println();
+        System.out.println("=== Stored Messages ===");
+        System.out.println("1) Display the sender and recipient of all stored messages");
+        System.out.println("2) Display the longest stored message");
+        System.out.println("3) Search for a message ID");
+        System.out.println("4) Search for all messages to a recipient");
+        System.out.println("5) Delete a stored message using its message hash");
+        System.out.println("6) Display a report of all messages");
+        System.out.println("7) Back to the main menu");
+    }
+
+    private static void showLongestStoredMessage() {
+        Message longest = STORE.longestStoredMessage();
+        if (longest == null) {
+            System.out.println(MessageStore.NO_STORED_MESSAGES);
+        } else {
+            System.out.println("Longest stored message: " + longest.getMessageText());
+        }
+    }
+
+    private static void searchByMessageId() {
+        String messageId = readLine("Enter the message ID: ").trim();
+        Message found = STORE.findById(messageId);
+        if (found == null) {
+            System.out.println(MessageStore.ID_NOT_FOUND);
+        } else {
+            System.out.println("Recipient: " + found.getRecipient());
+            System.out.println("Message: " + found.getMessageText());
+        }
+    }
+
+    private static void searchByRecipient() {
+        String recipient = readLine("Enter the recipient's cell number: ").trim();
+        String[] messages = STORE.messagesForRecipient(recipient);
+        if (messages.length == 0) {
+            System.out.println("No sent or stored messages found for that recipient.");
+        }
+        for (int i = 0; i < messages.length; i++) {
+            System.out.println((i + 1) + ") " + messages[i]);
+        }
+    }
+
+    private static void deleteByHash() {
+        String hash = readLine("Enter the message hash: ").trim();
+        String result = STORE.deleteByHash(hash);
+        System.out.println(result);
+
+        // Save the stored messages again so the deleted message is also gone from the file.
+        if (!result.equals(MessageStore.HASH_NOT_FOUND)) {
+            try {
+                STORE.saveStoredMessages();
+            } catch (IOException e) {
+                System.out.println("The change could not be saved: " + e.getMessage());
+            }
         }
     }
 

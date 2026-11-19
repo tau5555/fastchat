@@ -7,7 +7,8 @@ around quick, secure conversations without the clutter.
 
 FastChat lets you create a personal account and log in securely, so your
 conversations stay tied to you and no one else. Once you're in, you can
-send messages to your contacts using their phone number.
+send messages to your contacts using their phone number, or keep a message
+to send later.
 
 ## Who it's for
 
@@ -25,6 +26,18 @@ task with clutter. FastChat focuses on the basics that actually matter:
   format before it's used, cutting down on errors and mistyped contacts.
 - **No distractions** — a lightweight experience that gets you talking to
   people without extra noise.
+
+## Managing your stored messages
+
+Messages you save to send later are kept in a file, so they're still there
+the next time you open the app. From the Stored Messages menu you can:
+
+- see who your stored messages are going to
+- find your longest stored message
+- look up a message by its ID
+- find every message you've sent or stored for one contact
+- delete a stored message
+- print a full report of your messages
 
 ## Getting started
 

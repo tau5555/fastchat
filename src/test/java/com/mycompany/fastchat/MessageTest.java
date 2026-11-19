@@ -1,6 +1,5 @@
 package com.mycompany.fastchat;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -30,11 +29,6 @@ public class MessageTest {
 
     private static final String FIXED_ID_1 = "0012345678";
     private static final String FIXED_ID_2 = "0012345679";
-
-    @BeforeEach
-    public void clearSentMessages() {
-        Message.clearSentMessages();
-    }
 
     // ---- Message length ----
 
@@ -142,25 +136,18 @@ public class MessageTest {
         assertEquals("Invalid option; please choose 1, 2 or 3.", message.sentMessage(9));
     }
 
-    // ---- Sent messages and totals ----
+    // ---- Message details ----
 
     @Test
-    public void testTotalMessagesSent() {
-        // Message 1 is sent, message 2 is disregarded, so only one is counted.
-        Message.recordSent(new Message(FIXED_ID_1, 0, RECIPIENT_1, TEXT_1));
-        assertEquals(1, Message.returnTotalMessages());
-    }
-
-    @Test
-    public void testPrintMessages() {
-        Message.recordSent(new Message(FIXED_ID_1, 0, RECIPIENT_1, TEXT_1));
+    public void testMessageDetails() {
+        Message message = new Message(FIXED_ID_1, 0, RECIPIENT_1, TEXT_1);
 
         String newLine = System.lineSeparator();
         String expected = "Message ID: 0012345678" + newLine
                 + "Message Hash: 00:0:HITONIGHT" + newLine
                 + "Recipient: +27718693002" + newLine
-                + "Message: Hi Mike, can you join us for dinner tonight?" + newLine + newLine;
-        assertEquals(expected, Message.printMessages());
+                + "Message: Hi Mike, can you join us for dinner tonight?";
+        assertEquals(expected, message.details());
     }
 
     // ---- JSON storage ----
